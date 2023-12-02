@@ -84,7 +84,7 @@ fn word_with_highest_index(input: &str) -> String {
     let mut highest_index = 0;
     let mut highest_word = String::new();
     for word in WORDS.iter() {
-        if let Some(index) = input.find(word) {
+        if let Some(index) = input.rfind(word) {
             if index > highest_index {
                 highest_index = index;
                 highest_word = word.to_string();
@@ -111,6 +111,8 @@ fn decoded_spelled_digits(input: &str) -> String {
 
     format!("{}{}", left_decoded, right_decoded)
 }
+
+
 
 fn part_1(input: &str) -> u32 {
     input
