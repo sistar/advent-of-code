@@ -1,62 +1,63 @@
+use std::collections::BTreeMap;
+
 fn main() {
     let input = include_str!("../input.txt");
     let result = part_1(input);
+    println!("\n");
     println!("Result part 1: {}", result);
     let result = part_2(input);
     println!("Result part 2: {}", result);
     
 }
-fn cube_count_rgb<F>(game_data: &Vec<Vec<&str>>, func: F, acc:(i32,i32,i32)) -> (i32, i32, i32) 
-where 
-    F: Fn(i32, i32) -> i32,
-    {
-    let mut red = acc.0;
-    let mut green = acc.1;
-    let mut blue = acc.2;
+fn cube_max_accros_draws(game_data: &Vec<Vec<&str>>) -> Cube {
+    let mut m:BTreeMap<&str,i32> = BTreeMap::new();
 
     let linear_game_data = game_data.concat();
 
     for cube in linear_game_data {
         let (n, colour) = parse_num_col(cube);
-        if colour == "blue" {
-            blue = func(blue,n);
-        } else if colour == "red" {
-            red = func(red, n);
-        } else if colour == "green" {
-            green = func(green,n);
-        }
+        m.entry(colour)
+        .and_modify(|f| {*f = (*f).max(n)})
+        .or_insert(n);
     }
-    (red, green, blue)
+    Cube { red: *m.get("red").unwrap_or(&0)
+    , green: *m.get("green").unwrap_or(&0), 
+    blue: *m.get("blue").unwrap_or(&0)}
+}
+#[derive(Debug)]
+struct Cube {
+    red: i32,
+    green: i32,
+    blue: i32,
+}
+impl Cube {
+    fn iter(&self) -> impl Iterator<Item = &i32> {
+        vec![&self.red, &self.green, &self.blue].into_iter()
+    }
 }
 
-fn cube_count_rgb_p2(game_data: &Vec<Vec<&str>>) -> (i32, i32, i32) 
+fn cube_count_rgb_p2<'a>(game_data: &'a Vec<Vec<&'a str>>) -> Cube 
 {
-    let mut red = 0;
-    let mut green = 0;
-    let mut blue = 0;
+    let mut m:BTreeMap<&str,i32> = BTreeMap::new();
 
     for blk in game_data {
-        let mut r = 0;
-        let mut g = 0;
-        let mut b = 0;
-
+        let mut mi: BTreeMap<&str,i32> = BTreeMap::new();
+        
         for cube in blk {
             let (n, colour) = parse_num_col(cube);
-            if colour == "blue" {
-                b = n;
-            } else if colour == "red" {
-                r = n;
-            } else if colour == "green" {
-                g = n;
-            }
+            mi.entry(colour)
+            .and_modify(|f| {*f = (*f).max(n)})
+            .or_insert(n);
         }
+        mi.iter().for_each(|(k,v)| {
+           m.entry(k).and_modify(|f| {*f = (*f).max(*v)}).or_insert(*v);
+        });
 
-        red = if r > red {r} else {red};
-        green = if g > green {g} else {green};
-        blue = if b > blue {b} else {blue};
     }
 
-    (red, green, blue)
+    Cube { red: *m.get("red").unwrap_or(&0)
+    , green: *m.get("green").unwrap_or(&0), 
+    blue: *m.get("blue").unwrap_or(&0)}
 }
 
 
@@ -74,9 +75,8 @@ fn parse_num_col(cube: &str) -> (i32, &str) {
 fn part_1(input: &str) -> i32 {
      input.lines().map(|line| {
         let (game_id, game_data) = parse_line(line); 
-        let max = |x:i32,y:i32| if x > y {x} else {y};
-        let rgb_max = cube_count_rgb(&game_data,max,(0,0,0));
-        let valid = rgb_max.0 <= 12 && rgb_max.1 <= 13 && rgb_max.2 <= 14;
+        let rgb_max = cube_max_accros_draws(&game_data);
+        let valid = rgb_max.red <= 12 && rgb_max.green <= 13 && rgb_max.blue <= 14;
         if valid {
             println!("Game {} is valid", game_id);
             println!("Max RGB: {:?}", rgb_max);
@@ -96,7 +96,7 @@ fn part_2(input: &str) -> i32 {
     input.lines().map(|line| {
         let (game_id, game_data) = parse_line(line); 
         let rgb_min = cube_count_rgb_p2(&game_data);
-        let pow = rgb_min.0 * rgb_min.1 * rgb_min.2;
+        let pow = rgb_min.iter().product::<i32>();
         print!("Game {} has min RGB: {:?} and pow: {}", game_id, rgb_min, pow);
         pow
     }).sum()
