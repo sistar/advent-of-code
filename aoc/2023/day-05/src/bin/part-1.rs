@@ -10,20 +10,20 @@ fn main() {
     println!("Result part 2: {}", result);
 }
 fn range_seeds(start: u64, len: u64) -> Vec<u64> {
-    (start..start+len).collect_vec()
+    (start..start + len).collect_vec()
 }
 fn vec_range_seeds(seed_ranges: &Vec<u64>) -> Vec<u64> {
-   seed_ranges
-    .chunks(2)
-    .into_iter()
-    .flat_map(|chunk| {
-        if let [start, len] = chunk {
-            range_seeds(*start, *len)
-        } else {
-            vec![]
-        }
-    })
-    .collect_vec()
+    seed_ranges
+        .chunks(2)
+        .into_iter()
+        .flat_map(|chunk| {
+            if let [start, len] = chunk {
+                range_seeds(*start, *len)
+            } else {
+                vec![]
+            }
+        })
+        .collect_vec()
 }
 fn part_2(input: &str) -> u64 {
     let game = parse_input(input, vec_range_seeds);
@@ -142,7 +142,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    
+
     use super::*;
 
     #[test]
@@ -188,12 +188,14 @@ mod tests {
         assert_eq!(result, expected);
     }
 
-
     #[test]
     fn test_parse_seeds() {
         let input = "seeds: 79 14 55 13";
-        let result = vec_range_seeds( &parse_seeds(input));
-        let expected = vec![79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67];
+        let result = vec_range_seeds(&parse_seeds(input));
+        let expected = vec![
+            79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 55, 56, 57, 58, 59, 60, 61, 62,
+            63, 64, 65, 66, 67,
+        ];
         assert_eq!(result, expected);
     }
 
