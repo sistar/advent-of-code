@@ -9,7 +9,7 @@ pub fn process(input: &str) -> miette::Result<String, AocError> {
     Ok(product.to_string())
 }
 
-fn calc_race(duration: u64,record_distance: u64) -> usize {
+fn calc_race(duration: u32,record_distance: u32) -> usize {
     (1..duration)
     .map(|t_charge_btn| {
         let velocity = t_charge_btn; // 1 m/s
@@ -22,17 +22,17 @@ fn calc_race(duration: u64,record_distance: u64) -> usize {
 }
 
 #[tracing::instrument]
-fn parse_one_line(line: &str) -> Vec<u64> {
+fn parse_one_line(line: &str) -> Vec<u32> {
     line.split_once(':')
         .unwrap()
         .1
         .split(' ')
         .filter(|s| !s.is_empty())
-        .map(|s| s.trim().parse::<u64>().expect("a number"))
+        .map(|s| s.trim().parse::<u32>().expect("a number"))
         .collect::<Vec<_>>()
 }
 #[tracing::instrument]
-fn parse_input(input: &str) -> Vec<Vec<u64>> {
+fn parse_input(input: &str) -> Vec<Vec<u32>> {
     let mut lines = input.lines();
     let times = parse_one_line(lines.next().unwrap());
     let distances = parse_one_line(lines.next().unwrap());
@@ -49,8 +49,8 @@ mod tests {
 
     #[test_log::test]
     fn test_process() -> miette::Result<()> {
-        let input = include_str!("../sample.txt");
-        assert_eq!("288", process(input)?);
+        let input = include_str!("../sample2.txt");
+        assert_eq!("71503", process(input)?);
         Ok(())
     }
 }
