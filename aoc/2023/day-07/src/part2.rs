@@ -15,6 +15,7 @@ pub enum HandTypes {
 }
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Cards {
+    J, // Joker J cards are now the weakest card
     Two,
     Three,
     Four,
@@ -24,7 +25,6 @@ pub enum Cards {
     Eight,
     Nine,
     T,
-    J,
     Q,
     K,
     A,
@@ -72,21 +72,51 @@ impl Hand {
 
     fn get_hand_type(cards: &[Cards]) -> HandTypes {
         let cards_set: HashSet<_> = cards.iter().collect();
-        let cards_set_len = cards_set.len();
+        let joker_count = cards.iter().filter(|c| **c == Cards::J).count();
+        // don't count joker as a specific card for hand type - it is a wild card
+        let cards_set_len = match joker_count {
+            0 => cards_set.len(),
+            _ => cards_set.len() - 1,
+        };
+
         let mut counts: Vec<usize> = cards_set
             .iter()
+            .filter(|c| ***c != Cards::J) // don't add jokers to the vector
             .map(|c| cards.iter().filter(|c2| c2 == c).count())
             .collect::<Vec<usize>>();
         counts.sort();
-        //dbg!(cards_set_len, counts);
-        match cards_set_len {
-            1 if counts == vec![5] => HandTypes::FiveOfAKind,
-            2 if counts == vec![1, 4] => HandTypes::FourOfAKind,
-            2 if counts == vec![2, 3] => HandTypes::FullHouse,
-            3 if counts == vec![1, 1, 3] => HandTypes::ThreeOfAKind,
-            3 if counts == vec![1, 2, 2] => HandTypes::TwoPair,
-            4 if counts == vec![1, 1, 1, 2] => HandTypes::OnePair,
-            5 if counts == vec![1, 1, 1, 1, 1] => HandTypes::HighCard,
+
+        match joker_count {
+            0 => match cards_set_len {
+                1 if counts == vec![5] => HandTypes::FiveOfAKind,
+                2 if counts == vec![1, 4] => HandTypes::FourOfAKind,
+                2 if counts == vec![2, 3] => HandTypes::FullHouse,
+                3 if counts == vec![1, 1, 3] => HandTypes::ThreeOfAKind,
+                3 if counts == vec![1, 2, 2] => HandTypes::TwoPair,
+                4 if counts == vec![1, 1, 1, 2] => HandTypes::OnePair,
+                5 if counts == vec![1, 1, 1, 1, 1] => HandTypes::HighCard,
+                _ => panic!("Invalid hand"),
+            },
+            1 => match cards_set_len {
+                1 if counts == vec![4] => HandTypes::FiveOfAKind,
+                2 if counts == vec![1, 3] => HandTypes::FourOfAKind,
+                2 if counts == vec![2, 2] => HandTypes::FullHouse,
+                3 => HandTypes::ThreeOfAKind,
+                4 => HandTypes::OnePair,
+                _ => panic!("Invalid hand"),
+            },
+            2 => match cards_set_len {
+                1 => HandTypes::FiveOfAKind,
+                2 => HandTypes::FourOfAKind,
+                3 => HandTypes::ThreeOfAKind,
+                _ => panic!("Invalid hand"),
+            },
+            3 => match cards_set_len {
+                1 => HandTypes::FiveOfAKind,
+                2 => HandTypes::FourOfAKind,
+                _ => panic!("Invalid hand"),
+            },
+            4 | 5 => HandTypes::FiveOfAKind,
             _ => panic!("Invalid hand"),
         }
     }
@@ -151,7 +181,7 @@ mod tests {
             HandTypes::FiveOfAKind
         );
         assert_eq!(
-            Hand::get_hand_type(&vec![Cards::A, Cards::A, Cards::A, Cards::A, Cards::K]),
+            Hand::get_hand_type(&vec![Cards::A, Cards::A, Cards::A, Cards::J, Cards::K]),
             HandTypes::FourOfAKind
         );
         assert_eq!(
@@ -167,12 +197,12 @@ mod tests {
             HandTypes::TwoPair
         );
         assert_eq!(
-            Hand::get_hand_type(&vec![Cards::A, Cards::A, Cards::K, Cards::Q, Cards::J]),
-            HandTypes::OnePair
+            Hand::get_hand_type(&vec![Cards::A, Cards::A, Cards::K, Cards::Q, Cards::J]), // J is a joker 1 pair + 1 joker = 3 of a kind
+            HandTypes::ThreeOfAKind
         );
         assert_eq!(
-            Hand::get_hand_type(&vec![Cards::A, Cards::K, Cards::Q, Cards::J, Cards::T]),
-            HandTypes::HighCard
+            Hand::get_hand_type(&vec![Cards::A, Cards::K, Cards::Q, Cards::J, Cards::T]), // J is a joker High card + 1 joker = 1 pair
+            HandTypes::OnePair
         );
     }
     #[test]
@@ -206,6 +236,11 @@ mod tests {
         assert!(Hand::from_str("AAAAA") > Hand::from_str("JJTTT"));
         assert!(Hand::from_str("AAAAA") > Hand::from_str("TTTT9"));
         assert!(Hand::from_str("33332") > Hand::from_str("2AAAA"));
+
+        let input = "JJJJJ 123
+22222 456";
+        let binding = parse_hands(input);
+        assert_eq!(binding[0], (Hand::from_str("JJJJJ"), "123"));
     }
 
     #[test]
@@ -213,18 +248,18 @@ mod tests {
         let input = include_str!("../sample.txt");
         let binding = parse_hands(input);
         let hands = binding.iter().map(|(h, _)| h).collect_vec();
-        assert_eq!(*hands[0], Hand::from_str("32T3K"));
-        assert_eq!(*hands[1], Hand::from_str("KTJJT"));
-        assert_eq!(*hands[2], Hand::from_str("KK677"));
-        assert_eq!(*hands[3], Hand::from_str("T55J5"));
-        println!(" EQUAL {:?} {:?}", hands[4], Hand::from_str("T55J5"));
-        assert_eq!(*hands[4], Hand::from_str("T55J5"));
+        assert_eq!(*hands[0], Hand::from_str("32T3K")); // 1 pair
+        assert_eq!(*hands[1], Hand::from_str("KK677")); // 2 pair
+        assert_eq!(*hands[2], Hand::from_str("T55J5")); // 4 of a kind - T < Q
+        assert_eq!(*hands[3], Hand::from_str("QQQJA")); // 4 of a kind - Q < K
+        assert_eq!(*hands[4], Hand::from_str("KTJJT")); // 4 of a kind
+
         Ok(())
     }
     #[test]
     fn test_process() -> miette::Result<()> {
         let input = include_str!("../sample.txt");
-        assert_eq!("6440", process(input)?);
+        assert_eq!("5905", process(input)?);
         Ok(())
     }
 }
