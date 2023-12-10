@@ -1,0 +1,3 @@
+[submodule "aoc/2023/2023/rust/daily-template"]
+	path = aoc/2023/2023/rust/daily-template
+	url = https://github.com/ChristopherBiscardi/advent-of-code
